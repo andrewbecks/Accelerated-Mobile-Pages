@@ -392,16 +392,22 @@ function amp_image_tag($content) {
 add_filter('the_content','amp_image_tag');
 
 
-// amp_iframe_tag will convert all the iframe tags and will change it to amp-iframe to make it AMP compatible.
-function amp_iframe_tag($content) {
-    $replace = array (
-        '<iframe' => '<amp-iframe',
-        '</iframe>' => '</amp-iframe>'
-    );
-    $content = strtr($content, $replace);
+//amp_iframe https://www.ampproject.org/docs/reference/extended/amp-iframe.html
+//Accurate Convertion of iframes to amp friendly
+function amp_iframe($content) {
+$amp_iframe = preg_match( '#<iframe .*?>(.*?)#i', $content, $matchery );
+$amp_iframe = preg_match( '@src="([^"]+)"@' , $matchery[0], $matcher );
+
+$replace = '<amp-iframe width=300 height=300
+    sandbox="allow-scripts allow-same-origin"
+    layout="responsive"
+    frameborder="0"
+    src="'."$matcher[1]".'">
+</amp-iframe>';
+$content = preg_replace('#<iframe .*?>(.*?)</iframe>#i', $replace, $content);
     return $content;
 }
-add_filter('the_content','amp_iframe_tag', 20 );
+add_filter('the_content','amp_iframe', 20 );
 
  
 // Strip the styles
@@ -423,8 +429,45 @@ function the_content_filter( $content ) {
     $content = preg_replace('/onmouseover[^>]*/', '', $content);
     $content = preg_replace('/onmouseout[^>]*/', '', $content);
     $content = preg_replace('/target[^>]*/', '', $content);
+    //hr stripping
+     $content = preg_replace('#<hr (.*?)>#i', '<hr>', $content);
+     //
     return $content; 
 }
+// amp_youtube will convert all the object tags and will change it to amp-youtube to make it AMP compatible.
+//Converts Youtube Flash <object> tag to amp friendly
+function amp_youtube($content) {
+    
+$ampvid = preg_match( '#<embed .*?>(.*?)#i', $content, $matchery );
+
+$ampvid = preg_match( '@src="([^"]+)"@' , $matchery[0], $matcher );
+$search2 = '#<embed(.*?)(?:src="https?://)?(?:www\.)?(?:youtu\.be/|youtube\.com(?:/embed/|/v/|/watch\?v=))([\w\-]{10,12}).*$#x';
+$search = preg_match("#(?<=v=)[a-zA-Z0-9-]+(?=&)|(?<=v\/)[^&\n]+(?=\?)|(?<=v=)[^&\n]+|(?<=youtu.be/)[^&\n]+#", $matcher[1], $matches);
+$replace = '<amp-youtube data-videoid="'."$matches[0]".'" layout="responsive" width="480" height="270"></amp-youtube>';
+$content = preg_replace('#<object .*?>(.*?)</object>#i', $replace, $content);
+    return $content;
+}
+add_filter('the_content','amp_youtube', 20 );
+
+//amp_audio https://www.ampproject.org/docs/reference/extended/amp-audio.html
+//Converts html5 <audio> to amp audio friendly support
+function amp_audio($content) {
+$src2 = preg_match('/<audio\b[^>]*>(.*?)<\/audio>/is', $content, $resultz);
+preg_match('/<source(.*)src(.*)=(.*)"(.*)"/U', $resultz[1], $result);
+$amp_audio = array_pop($result);
+$amp_audio = str_replace("?_=1", "", $amp_audio);
+$replace = '<amp-audio width="400" height="300" src="'."$amp_audio".'">
+<div fallback>
+ <p>Your browser doesn’t support HTML5 audio</p>
+</div>
+  <source type="audio/mpeg" src="foo.mp3">
+  <source type="audio/ogg" src="foo.ogg">
+</amp-audio>';
+
+$content = preg_replace('#<audio .*?>(.*?)</audio>#i', $replace, $content);
+    return $content;
+}
+add_filter('the_content','amp_audio', 20 );
 
 // Check if Jetpack is active and remove unsupported features
 if ( class_exists( 'Jetpack' ) && ! ( defined( 'IS_WPCOM' ) && IS_WPCOM ) ) {

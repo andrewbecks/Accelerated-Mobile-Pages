@@ -429,9 +429,10 @@ function the_content_filter( $content ) {
     $content = preg_replace('/onmouseover[^>]*/', '', $content);
     $content = preg_replace('/onmouseout[^>]*/', '', $content);
     $content = preg_replace('/target[^>]*/', '', $content);
-    //hr stripping
-     $content = preg_replace('#<hr (.*?)>#i', '<hr>', $content);
-     //
+    //hr,table stripping
+    $content = preg_replace('#<hr (.*?)>#i', '<hr>', $content);
+    $content = preg_replace('#<table (.*?)>#i', '<table>', $content);
+     
     return $content; 
 }
 // amp_youtube will convert all the object tags and will change it to amp-youtube to make it AMP compatible.
